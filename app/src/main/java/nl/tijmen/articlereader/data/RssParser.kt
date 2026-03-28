@@ -6,16 +6,13 @@ import java.io.InputStream
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-/**
- * Parses a standard WordPress RSS 2.0 feed using XmlPullParser (no external deps).
- * Handles <item> elements with title, link, description, pubDate, dc:creator,
- * and optionally media:content or enclosure for thumbnail images.
- */
 object RssParser {
 
     private val NS: String? = null
+    private val RFC2822 = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH)
+    private val DISPLAY_FORMAT = SimpleDateFormat("d MMM yyyy", Locale("nl", "NL"))
 
-    fun parse(inputStream: InputStream): List<Article> {
+    fun parse(inputStream: InputStream, source: FeedSource): List<Article> {
         val parser = Xml.newPullParser()
         parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
         parser.setInput(inputStream, null)
@@ -25,18 +22,19 @@ object RssParser {
 
         while (eventType != XmlPullParser.END_DOCUMENT) {
             if (eventType == XmlPullParser.START_TAG && parser.name == "item") {
-                articles.add(readItem(parser))
+                articles.add(readItem(parser, source))
             }
             eventType = parser.next()
         }
         return articles
     }
 
-    private fun readItem(parser: XmlPullParser): Article {
+    private fun readItem(parser: XmlPullParser, source: FeedSource): Article {
         var title = ""
         var link = ""
         var description = ""
         var pubDate = ""
+        var timestamp = 0L
         var author = ""
         var imageUrl: String? = null
 
@@ -47,7 +45,11 @@ object RssParser {
                 "title"       -> title = readText(parser)
                 "link"        -> link = readText(parser)
                 "description" -> description = stripHtml(readText(parser))
-                "pubDate"     -> pubDate = readText(parser)
+                "pubDate"     -> {
+                    val raw = readText(parser)
+                    pubDate = formatDate(raw)
+                    timestamp = parseTimestamp(raw)
+                }
                 "dc:creator"  -> author = readText(parser)
                 "creator"     -> if (author.isEmpty()) author = readText(parser)
                 "media:content", "media:thumbnail" -> {
@@ -70,9 +72,11 @@ object RssParser {
             title = decodeHtmlEntities(title.trim()),
             link = link.trim(),
             description = description.trim().take(200),
-            pubDate = formatDate(pubDate.trim()),
+            pubDate = pubDate,
+            timestamp = timestamp,
             author = author.trim(),
-            imageUrl = imageUrl
+            imageUrl = imageUrl,
+            source = source
         )
     }
 
@@ -91,34 +95,27 @@ object RssParser {
         while (depth != 0) {
             when (parser.next()) {
                 XmlPullParser.START_TAG -> depth++
-                XmlPullParser.END_TAG -> depth--
+                XmlPullParser.END_TAG   -> depth--
             }
         }
     }
 
     private fun stripHtml(html: String): String =
         android.text.Html.fromHtml(html, android.text.Html.FROM_HTML_MODE_COMPACT)
-            .toString()
-            .replace("\n\n", " ")
-            .trim()
+            .toString().replace("\n\n", " ").trim()
 
     private fun decodeHtmlEntities(text: String): String =
-        text.replace("&amp;", "&")
-            .replace("&lt;", "<")
-            .replace("&gt;", ">")
-            .replace("&quot;", "\"")
-            .replace("&#8217;", "\u2019")
-            .replace("&#8216;", "\u2018")
-            .replace("&#8220;", "\u201C")
+        text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+            .replace("&quot;", "\"").replace("&#8217;", "\u2019")
+            .replace("&#8216;", "\u2018").replace("&#8220;", "\u201C")
             .replace("&#8221;", "\u201D")
 
-    private fun formatDate(raw: String): String {
-        return try {
-            val sdf = SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss Z", Locale.ENGLISH)
-            val date = sdf.parse(raw) ?: return raw
-            SimpleDateFormat("d MMM yyyy", Locale("nl", "NL")).format(date)
-        } catch (e: Exception) {
-            raw
-        }
-    }
+    private fun formatDate(raw: String): String = try {
+        val date = RFC2822.parse(raw) ?: return raw
+        DISPLAY_FORMAT.format(date)
+    } catch (e: Exception) { raw }
+
+    private fun parseTimestamp(raw: String): Long = try {
+        RFC2822.parse(raw)?.time ?: 0L
+    } catch (e: Exception) { 0L }
 }

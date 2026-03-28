@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Adaptive icon foreground: 108x108dp canvas
+  Safe zone: center 72x72dp (18dp inset on each side)
+  Design: stylized newspaper / article page
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Paper body: rounded rectangle -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,22 L82,22 Q86,22 86,26 L86,86 Q86,90 82,90 L26,90 Q22,90 22,86 L22,26 Q22,22 26,22 Z" />
+
+    <!-- Headline bar (terracotta accent) -->
+    <path
+        android:fillColor="#BF360C"
+        android:pathData="M27,27 L81,27 L81,40 L27,40 Z" />
+
+    <!-- Headline text lines (white on terracotta) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M31,31 L71,31 Q72,31 72,32.5 Q72,34 71,34 L31,34 Q30,34 30,32.5 Q30,31 31,31 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M31,36 L60,36 Q61,36 61,37.5 Q61,39 60,39 L31,39 Q30,39 30,37.5 Q30,36 31,36 Z" />
+
+    <!-- Body text lines (dark grey) -->
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M27,46 L81,46 Q82,46 82,47.5 Q82,49 81,49 L27,49 Q26,49 26,47.5 Q26,46 27,46 Z" />
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M27,53 L81,53 Q82,53 82,54.5 Q82,56 81,56 L27,56 Q26,56 26,54.5 Q26,53 27,53 Z" />
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M27,60 L68,60 Q69,60 69,61.5 Q69,63 68,63 L27,63 Q26,63 26,61.5 Q26,60 27,60 Z" />
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M27,67 L81,67 Q82,67 82,68.5 Q82,70 81,70 L27,70 Q26,70 26,68.5 Q26,67 27,67 Z" />
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M27,74 L74,74 Q75,74 75,75.5 Q75,77 74,77 L27,77 Q26,77 26,75.5 Q26,74 27,74 Z" />
+    <path
+        android:fillColor="#5D4037"
+        android:pathData="M27,81 L60,81 Q61,81 61,82.5 Q61,84 60,84 L27,84 Q26,84 26,82.5 Q26,81 27,81 Z" />
+
+</vector>

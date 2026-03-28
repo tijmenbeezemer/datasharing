@@ -9,39 +9,23 @@ import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
-import nl.tijmen.articlereader.data.FeedSource
 
-private val FoodLightColors = lightColorScheme(
+private val LightColors = lightColorScheme(
     primary = FoodPrimary,
     onPrimary = FoodOnPrimary,
     primaryContainer = FoodPrimaryContainer,
     onPrimaryContainer = FoodOnPrimaryContainer
 )
 
-private val FoodDarkColors = darkColorScheme(
+private val DarkColors = darkColorScheme(
     primary = FoodDarkPrimary,
     onPrimary = FoodDarkOnPrimary,
     primaryContainer = FoodDarkPrimaryContainer,
     onPrimaryContainer = FoodPrimaryContainer
 )
 
-private val EconLightColors = lightColorScheme(
-    primary = EconPrimary,
-    onPrimary = EconOnPrimary,
-    primaryContainer = EconPrimaryContainer,
-    onPrimaryContainer = EconOnPrimaryContainer
-)
-
-private val EconDarkColors = darkColorScheme(
-    primary = EconDarkPrimary,
-    onPrimary = EconDarkOnPrimary,
-    primaryContainer = EconDarkPrimaryContainer,
-    onPrimaryContainer = EconPrimaryContainer
-)
-
 @Composable
 fun ArticleReaderTheme(
-    source: FeedSource? = null,
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
@@ -51,10 +35,8 @@ fun ArticleReaderTheme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        source == FeedSource.ESB ->
-            if (darkTheme) EconDarkColors else EconLightColors
-        else ->
-            if (darkTheme) FoodDarkColors else FoodLightColors
+        darkTheme -> DarkColors
+        else -> LightColors
     }
 
     MaterialTheme(

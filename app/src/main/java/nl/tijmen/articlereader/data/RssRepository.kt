@@ -6,15 +6,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.util.concurrent.TimeUnit
 
-/**
- * Fetches RSS articles for a given FeedSource.
- *
- * 403 handling strategy (layered):
- *  1. Primary request with browser-like User-Agent — resolves most WordPress 403s.
- *  2. On 403, retry with alternate feed URL variants.
- *  3. If all variants fail, throw FeedUnavailableException so the UI shows
- *     the "Open site in browser" fallback action.
- */
 class RssRepository {
 
     private val client = OkHttpClient.Builder()
@@ -26,19 +17,30 @@ class RssRepository {
         "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 " +
         "(KHTML, like Gecko) Chrome/124.0.6367.82 Mobile Safari/537.36"
 
-    private fun fallbackUrls(source: FeedSource): List<String> = listOf(
-        source.feedUrl,
-        "${source.siteUrl}/?feed=rss2",
-        "${source.siteUrl}/rss",
-        "${source.siteUrl}/feed/rss/"
-    )
+    private fun fallbackUrls(source: FeedSource): List<String> = when (source) {
+        FeedSource.STUK_ROOD_VLEES -> listOf(
+            "https://www.stukroodvlees.nl/feed/",
+            "https://stukroodvlees.nl/feed/",
+            "https://www.stukroodvlees.nl/?feed=rss2"
+        )
+        FeedSource.ESB -> listOf(
+            "https://esb.nl/rss",
+            "https://esb.nl/feed/",
+            "https://esb.nl/rss.xml",
+            "https://esb.nl/atom.xml",
+            "https://esb.nl/?feed=rss2",
+            "https://esb.nl/artikelen/rss",
+            "https://www.esb.nl/rss",
+            "https://www.esb.nl/feed/"
+        )
+    }
 
     suspend fun fetchArticles(source: FeedSource): List<Article> =
         withContext(Dispatchers.IO) {
             var lastException: Exception? = null
             for (url in fallbackUrls(source)) {
                 try {
-                    val result = fetchUrl(url)
+                    val result = fetchUrl(url, source)
                     if (result != null) return@withContext result
                 } catch (e: FeedUnavailableException) {
                     lastException = e
@@ -49,7 +51,7 @@ class RssRepository {
             throw lastException ?: FeedUnavailableException(source, "All feed URLs failed")
         }
 
-    private fun fetchUrl(url: String): List<Article>? {
+    private fun fetchUrl(url: String, source: FeedSource): List<Article>? {
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", browserUserAgent)
@@ -61,9 +63,9 @@ class RssRepository {
         return when {
             response.isSuccessful -> {
                 val body = response.body ?: return null
-                body.byteStream().use { RssParser.parse(it) }
+                body.byteStream().use { RssParser.parse(it, source) }
             }
-            response.code == 403 -> null
+            response.code == 403 || response.code == 404 -> null
             else -> throw Exception("HTTP ${response.code} from $url")
         }
     }
