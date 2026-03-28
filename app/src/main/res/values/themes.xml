@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose handles all theming; only needed for window background before first frame -->
+    <style name="Theme.ArticleReader" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

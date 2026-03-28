@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">stukroodvlees.nl</domain>
+        <domain includeSubdomains="true">esb.nl</domain>
+    </domain-config>
+</network-security-config>
