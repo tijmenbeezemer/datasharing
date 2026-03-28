@@ -12,7 +12,7 @@ enum class FeedSource(
     ),
     ESB(
         displayName = "ESB",
-        feedUrl = "https://www.esb.nl/feed/",
-        siteUrl = "https://www.esb.nl"
+        feedUrl = "https://esb.nu/feed/",
+        siteUrl = "https://esb.nu"
     )
 }

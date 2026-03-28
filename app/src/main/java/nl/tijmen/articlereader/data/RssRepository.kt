@@ -24,14 +24,10 @@ class RssRepository {
             "https://www.stukroodvlees.nl/?feed=rss2"
         )
         FeedSource.ESB -> listOf(
-            "https://esb.nl/rss",
-            "https://esb.nl/feed/",
-            "https://esb.nl/rss.xml",
-            "https://esb.nl/atom.xml",
-            "https://esb.nl/?feed=rss2",
-            "https://esb.nl/artikelen/rss",
-            "https://www.esb.nl/rss",
-            "https://www.esb.nl/feed/"
+            "https://esb.nu/feed/",
+            "https://esb.nu/artikelen/feed/",
+            "https://esb.nu/?feed=rss2",
+            "https://www.esb.nu/feed/"
         )
     }
 
