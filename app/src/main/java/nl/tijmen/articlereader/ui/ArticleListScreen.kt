@@ -4,17 +4,17 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PullToRefreshBox
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -27,7 +27,11 @@ import nl.tijmen.articlereader.data.FeedSource
 import nl.tijmen.articlereader.ui.components.ArticleCard
 import nl.tijmen.articlereader.ui.components.ErrorState
 import nl.tijmen.articlereader.util.openInCustomTab
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ArticleListScreen(
     viewModel: ArticleViewModel,
@@ -35,100 +39,98 @@ fun ArticleListScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
+    val filters = ArticleFilter.entries
 
     Column(modifier = modifier.fillMaxSize()) {
-        // Filter chips
-        Row(
+
+        // Segmented filter buttons
+        SingleChoiceSegmentedButtonRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
-            FeedSource.entries.forEach { source ->
-                val isSelected = source in state.activeFilters
-                val sourceState = state.sourceStates[source]
-                val isLoading = sourceState?.loadState == SourceLoadState.LOADING
-
-                FilterChip(
-                    selected = isSelected,
-                    onClick = { viewModel.toggleFilter(source) },
-                    label = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(source.displayName)
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(12.dp),
-                                    strokeWidth = 1.5.dp
-                                )
-                            }
-                        }
-                    },
-                    colors = FilterChipDefaults.filterChipColors(
-                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
+            filters.forEachIndexed { index, filter ->
+                SegmentedButton(
+                    selected = state.selectedFilter == filter,
+                    onClick = { viewModel.setFilter(filter) },
+                    shape = SegmentedButtonDefaults.itemShape(index, filters.size),
+                    label = { Text(filter.label) }
                 )
             }
         }
 
-        // Error banners for unavailable feeds
+        // Last refresh time
+        if (state.lastRefreshTime > 0L) {
+            Text(
+                text = "Bijgewerkt: ${formatRefreshTime(state.lastRefreshTime)}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 4.dp)
+            )
+        }
+
+        // Error banners per source
         FeedSource.entries.forEach { source ->
             val sourceState = state.sourceStates[source]
             if (sourceState?.loadState == SourceLoadState.UNAVAILABLE ||
-                sourceState?.loadState == SourceLoadState.ERROR) {
-                FeedErrorBanner(
-                    source = source,
-                    message = sourceState.error ?: "Fout",
-                    isUnavailable = sourceState.loadState == SourceLoadState.UNAVAILABLE,
+                sourceState?.loadState == SourceLoadState.ERROR
+            ) {
+                ErrorState(
+                    message = "${source.displayName}: ${sourceState.error}",
                     onRetry = { viewModel.load(source) },
-                    onOpenBrowser = { context.openInCustomTab(source.siteUrl) }
+                    onOpenBrowser = if (sourceState.loadState == SourceLoadState.UNAVAILABLE) {
+                        { context.openInCustomTab(source.siteUrl) }
+                    } else null,
+                    compact = true
                 )
             }
         }
 
-        val articles = state.filteredArticles
+        // Article list with pull-to-refresh
+        val articles = state.displayedArticles
 
-        if (articles.isEmpty() && !state.isAnyLoading) {
-            Box(modifier = Modifier.fillMaxSize()) {
-                Text(
-                    text = "Geen artikelen beschikbaar",
-                    modifier = Modifier.align(Alignment.Center),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            LazyColumn(
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(articles, key = { it.link }) { article ->
-                    ArticleCard(
-                        article = article,
-                        onClick = { context.openInCustomTab(article.link) },
-                        showSourceBadge = true
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize()
+        ) {
+            if (articles.isEmpty() && !state.isAnyLoading && !state.isRefreshing) {
+                Box(Modifier.fillMaxSize()) {
+                    Text(
+                        text = if (state.selectedFilter == ArticleFilter.SAVED)
+                            "Nog niets opgeslagen"
+                        else
+                            "Geen artikelen beschikbaar",
+                        modifier = Modifier.align(Alignment.Center),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(articles, key = { it.link }) { article ->
+                        ArticleCard(
+                            article = article,
+                            isRead = article.link in state.readLinks,
+                            isSaved = article.link in state.savedLinks,
+                            onSave = { viewModel.toggleSave(article) },
+                            onClick = {
+                                viewModel.markAsRead(article.link)
+                                context.openInCustomTab(article.link)
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
 
-@Composable
-private fun FeedErrorBanner(
-    source: FeedSource,
-    message: String,
-    isUnavailable: Boolean,
-    onRetry: () -> Unit,
-    onOpenBrowser: () -> Unit
-) {
-    ErrorState(
-        message = "${source.displayName}: $message",
-        onRetry = onRetry,
-        onOpenBrowser = if (isUnavailable) onOpenBrowser else null,
-        compact = true
-    )
+private fun formatRefreshTime(timestamp: Long): String {
+    val sdf = SimpleDateFormat("HH:mm", Locale("nl", "NL"))
+    return sdf.format(Date(timestamp))
 }
