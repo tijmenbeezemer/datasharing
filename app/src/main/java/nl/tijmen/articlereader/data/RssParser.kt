@@ -110,10 +110,12 @@ object RssParser {
             .replace("&#8216;", "\u2018").replace("&#8220;", "\u201C")
             .replace("&#8221;", "\u201D")
 
-    private fun formatDate(raw: String): String = try {
-        val date = RFC2822.parse(raw) ?: return raw
-        DISPLAY_FORMAT.format(date)
-    } catch (e: Exception) { raw }
+    private fun formatDate(raw: String): String {
+        return try {
+            val date = RFC2822.parse(raw) ?: return raw
+            DISPLAY_FORMAT.format(date)
+        } catch (e: Exception) { raw }
+    }
 
     private fun parseTimestamp(raw: String): Long = try {
         RFC2822.parse(raw)?.time ?: 0L
