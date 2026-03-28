@@ -11,19 +11,16 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PullToRefreshContainer
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberPullToRefreshState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import nl.tijmen.articlereader.data.FeedSource
@@ -43,17 +40,6 @@ fun ArticleListScreen(
     val state by viewModel.state.collectAsState()
     val context = LocalContext.current
     val filters = ArticleFilter.entries
-
-    val pullToRefreshState = rememberPullToRefreshState()
-
-    // Trigger ViewModel refresh when user pulls
-    if (pullToRefreshState.isRefreshing) {
-        LaunchedEffect(Unit) { viewModel.refresh() }
-    }
-    // Stop indicator when ViewModel is done
-    LaunchedEffect(state.isRefreshing) {
-        if (!state.isRefreshing) pullToRefreshState.endRefresh()
-    }
 
     Column(modifier = modifier.fillMaxSize()) {
 
@@ -105,10 +91,10 @@ fun ArticleListScreen(
         // Article list with pull-to-refresh
         val articles = state.displayedArticles
 
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .nestedScroll(pullToRefreshState.nestedScrollConnection)
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = { viewModel.refresh() },
+            modifier = Modifier.fillMaxSize()
         ) {
             if (articles.isEmpty() && !state.isAnyLoading && !state.isRefreshing) {
                 Text(
@@ -140,11 +126,6 @@ fun ArticleListScreen(
                     }
                 }
             }
-
-            PullToRefreshContainer(
-                state = pullToRefreshState,
-                modifier = Modifier.align(Alignment.TopCenter)
-            )
         }
     }
 }
